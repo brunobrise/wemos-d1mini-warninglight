@@ -10,14 +10,14 @@
 *********/
 
 #include <Arduino.h>
+#include <ESPAsyncWebServer.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
-#include <ESP8266WebServer.h>
 #include <WiFiClient.h>
 
 ESP8266WiFiMulti WiFiMulti;
-ESP8266WebServer server(80);
+AsyncWebServer server(80);
 
 // REPLACE WITH YOUR NETWORK CREDENTIALS
 const char* ssid = "REPLACE_WITH_YOUR_SSID";
@@ -25,10 +25,10 @@ const char* password = "REPLACE_WITH_YOUR_PASSWORD";
 const char* endpoint_url = "REPLACE_WITH_YOUR_ENDPOINT_URL";
 const uint8_t pin_relay = 5;
 const uint8_t setup_wait = 5;
-const uint8_t check_delay = 1000;
+const uint8_t check_delay = 15000;
 
-void handleRoot() {
-  server.send(200, "text/plain", "YOLO!");
+void handleRoot(AsyncWebServerRequest *request) {
+  request->send(200, "text/plain", "YOLO!");
 }
 
 void setup() {
@@ -69,15 +69,13 @@ void setup() {
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
 
-  server.on("/", handleRoot);
+  server.on("/", HTTP_GET, handleRoot);
   server.begin();
 }
 
 void loop() {
   // check WiFi connection (connect if required)
   if ((WiFiMulti.run() == WL_CONNECTED)) {
-    server.handleClient();
-
     WiFiClient client;
 
     HTTPClient http;
