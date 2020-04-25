@@ -13,9 +13,11 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
+#include <ESP8266WebServer.h>
 #include <WiFiClient.h>
 
 ESP8266WiFiMulti WiFiMulti;
+ESP8266WebServer server(80);
 
 // REPLACE WITH YOUR NETWORK CREDENTIALS
 const char* ssid = "REPLACE_WITH_YOUR_SSID";
@@ -23,7 +25,11 @@ const char* password = "REPLACE_WITH_YOUR_PASSWORD";
 const char* endpoint_url = "REPLACE_WITH_YOUR_ENDPOINT_URL";
 const uint8_t pin_relay = 5;
 const uint8_t setup_wait = 5;
-const uint8_t check_delay = 15000;
+const uint8_t check_delay = 1000;
+
+void handleRoot() {
+  server.send(200, "text/plain", "YOLO!");
+}
 
 void setup() {
   // initialize pin
@@ -50,11 +56,27 @@ void setup() {
   // connect to WiFi network
   WiFi.mode(WIFI_STA);
   WiFiMulti.addAP(ssid, password);
+
+  // wait for WiFi connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  // show IP address
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  server.on("/", handleRoot);
+  server.begin();
 }
 
 void loop() {
-  // wait for WiFi connection
+  // check WiFi connection (connect if required)
   if ((WiFiMulti.run() == WL_CONNECTED)) {
+    server.handleClient();
 
     WiFiClient client;
 
