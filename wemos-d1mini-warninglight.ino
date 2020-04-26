@@ -25,9 +25,10 @@ const char* password = "REPLACE_WITH_YOUR_PASSWORD";
 const char* endpoint_url_default = "";
 const uint8_t pin_relay = 5;
 const uint8_t setup_wait = 5;
-const unsigned long check_delay = 15000;
+const unsigned int check_period_default = 15000;
 
 const char* PARAM_ENDPOINT_URL = "endpoint_url";
+const char* PARAM_CHECK_PERIOD = "check_period";
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html><head>
@@ -41,6 +42,11 @@ const char index_html[] PROGMEM = R"rawliteral(
   <form action="/configure" target="hidden-form">
     <label for="endpoint_url">Endpoint URL</label>
     <input type="text " name="endpoint_url" placeholder="%endpoint_url%" value="%endpoint_url%">
+    <input type="submit" value="Save" onclick="submitMessage()">
+  </form><br>
+  <form action="/configure" target="hidden-form">
+    <label for="check_period">Check period</label>
+    <input type="text " name="check_period" placeholder="%check_period%" value="%check_period%">
     <input type="submit" value="Save" onclick="submitMessage()">
   </form>
   <iframe style="display:none" name="hidden-form"></iframe>
@@ -100,6 +106,9 @@ void configure(AsyncWebServerRequest *request) {
   if (request->hasParam(PARAM_ENDPOINT_URL)) {
     inputMessage = request->getParam(PARAM_ENDPOINT_URL)->value();
     writeFile(SPIFFS, "/endpoint_url.txt", inputMessage.c_str());
+  } else if (request->hasParam(PARAM_CHECK_PERIOD)) {
+    inputMessage = request->getParam(PARAM_CHECK_PERIOD)->value();
+    writeFile(SPIFFS, "/check_period.txt", inputMessage.c_str());
   } else {
     inputMessage = "[HTTP] /configure: No message sent";
   }
@@ -111,6 +120,8 @@ String processor(const String& var){
   //Serial.println(var);
   if(var == "endpoint_url"){
     return readFile(SPIFFS, "/endpoint_url.txt");
+  } else if(var == "check_period") {
+    return readFile(SPIFFS, "/check_period.txt");
   }
   return String();
 }
@@ -130,6 +141,11 @@ void setup() {
   // store default values
   if(readFile(SPIFFS, "/endpoint_url.txt") == "") {
     writeFile(SPIFFS, "/endpoint_url.txt", endpoint_url_default);
+  }
+  if(readFile(SPIFFS, "/check_period.txt") == "") {
+    char cstr[16];
+    const char* check_period = itoa(check_period_default, cstr, 10);
+    writeFile(SPIFFS, "/check_period.txt", check_period);
   }
 
   Serial.println();
@@ -217,5 +233,5 @@ void loop() {
   }
 
   // wait for specified duration before requesting current status
-  delay(check_delay);
+  delay(atol(readFile(SPIFFS, "/check_period.txt").c_str()));
 }
