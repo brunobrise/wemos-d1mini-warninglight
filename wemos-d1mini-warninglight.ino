@@ -50,7 +50,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
     setTimeout(function(){ document.location.reload(false); }, 5000);
   </script></head><body>
-  <nav class="flex items-center justify-between flex-wrap bg-black p-6">
+  <nav class="flex items-center justify-between flex-wrap bg-black p-6 mb-4">
     <div class="flex items-center flex-shrink-0 text-white mr-6">
       <svg class="fill-current h-8 w-8 mr-2" width="54" height="54" viewBox="0 0 576 512" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M288 288c-6.04 0-11.77 1.11-17.3 2.67l-75.76-97.4c-8.12-10.45-23.12-12.38-33.69-4.2-10.44 8.12-12.34 23.2-4.19 33.67l75.75 97.39c-5.45 9.42-8.81 20.21-8.81 31.88 0 11.72 3.38 22.55 8.88 32h110.25c5.5-9.45 8.88-20.28 8.88-32C352 316.65 323.35 288 288 288zm0-256C128.94 32 0 160.94 0 320c0 52.8 14.25 102.26 39.06 144.8 5.61 9.62 16.3 15.2 27.44 15.2h443c11.14 0 21.83-5.58 27.44-15.2C561.75 422.26 576 372.8 576 320c0-159.06-128.94-288-288-288zm212.27 400H75.73C57.56 397.63 48 359.12 48 320 48 187.66 155.66 80 288 80s240 107.66 240 240c0 39.12-9.56 77.63-27.73 112z" class=""></path></svg>
       <span class="font-semibold text-xl tracking-tight">Dashboard</span>
@@ -58,9 +58,16 @@ const char index_html[] PROGMEM = R"rawliteral(
   </nav>
   <div class="w-full px-4">
     <div class="flex flex-col">
-      <div class="flex flex-row items-center justify-between shadow-xs border rounded font-semibold p-2 mt-4 focus:outline-none focus:shadow-outline">
+      <div class="flex flex-row items-center justify-between shadow-xs border rounded font-semibold p-2 focus:outline-none focus:shadow-outline">
         <p class="text-xs uppercase w-5/6 overflow-hidden">%endpoint_url%</p>
         <div class="bg-black h-8 w-8 shadow border-2 border-gray-800 rounded-full %check_status%"></div>
+      </div>
+    </div>
+    <div class="flex flex-wrap justify-center mt-4">
+      <h1 class="text-xl font-bold mb-2 text-gray-900">SYSTEM INFORMATION</h1>
+      <div class="sm:w-full flex items-center text-black mr-6">
+        <svg class="fill-current text-gray-800  h-8 w-8 mr-2" width="54" height="54" viewBox="0 0 640 512" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M640 130.94V96c0-17.67-14.33-32-32-32H32C14.33 64 0 78.33 0 96v34.94c18.6 6.61 32 24.19 32 45.06s-13.4 38.45-32 45.06V320h640v-98.94c-18.6-6.61-32-24.19-32-45.06s13.4-38.45 32-45.06zM224 256h-64V128h64v128zm128 0h-64V128h64v128zm128 0h-64V128h64v128zM0 448h64v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h64v-96H0v96z" class=""></path></svg>
+        <span class="font-semibold text-md text-gray-800 tracking-tight">%system_heap%</span>
       </div>
     </div>
     <a class="block text-center text-xs underline mt-6" href="/admin">Go to Admin</a>
@@ -211,6 +218,9 @@ String processor(const String& var){
     return readFile(SPIFFS, "/check_period.txt");
   } else if(var == "check_status") {
     return readFile(SPIFFS, "/check_status.txt");
+  } else if(var == "system_heap") {
+    String system_heap = String(ESP.getFreeHeap()) + " bytes";
+    return system_heap;
   }
   return String();
 }
