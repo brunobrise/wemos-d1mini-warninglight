@@ -46,11 +46,20 @@ const char index_html[] PROGMEM = R"rawliteral(
   <iframe style="display:none" name="hidden-form"></iframe>
 </body></html>)rawliteral";
 
+void logRoute(AsyncWebServerRequest *request) {
+  Serial.print("[HTTP] ");
+  Serial.print(request->client()->remoteIP());
+  Serial.print(" ");
+  Serial.println(request->url());
+}
+
 void handleRoot(AsyncWebServerRequest *request) {
+  logRoute(request);
   request->send_P(200, "text/html", index_html, processor);
 }
 
 void notFound(AsyncWebServerRequest *request) {
+  logRoute(request);
   request->send(404, "text/plain", "");
 }
 
@@ -84,16 +93,16 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
 }
 
 void configure(AsyncWebServerRequest *request) {
-    Serial.println("[HTTP] /configure");
-    String inputMessage;
-    if (request->hasParam(PARAM_ENDPOINT_URL)) {
-      inputMessage = request->getParam(PARAM_ENDPOINT_URL)->value();
-      writeFile(SPIFFS, "/endpoint_url.txt", inputMessage.c_str());
-    } else {
-      inputMessage = "[HTTP] /configure: No message sent";
-    }
-    Serial.println(inputMessage);
-    request->send(200, "text/text", inputMessage);
+  logRoute(request);
+  String inputMessage;
+  if (request->hasParam(PARAM_ENDPOINT_URL)) {
+    inputMessage = request->getParam(PARAM_ENDPOINT_URL)->value();
+    writeFile(SPIFFS, "/endpoint_url.txt", inputMessage.c_str());
+  } else {
+    inputMessage = "[HTTP] /configure: No message sent";
+  }
+  Serial.println(inputMessage);
+  request->send(200, "text/text", inputMessage);
 }
 
 // replace placeholder with stored values
