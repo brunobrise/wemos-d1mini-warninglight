@@ -144,11 +144,11 @@ void setup() {
     delay(500);
     Serial.print(".");
   }
-
+  
   // show IP address
   Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
+  Serial.println("[SETUP] WiFi connected");
+  Serial.print("[SETUP] IP address: ");
   Serial.println(WiFi.localIP());
 
   // Set routes
