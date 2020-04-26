@@ -64,7 +64,7 @@ void notFound(AsyncWebServerRequest *request) {
 }
 
 String readFile(fs::FS &fs, const char * path){
-  Serial.printf("[FILE] READ %s:\r\n", path);
+  Serial.printf("[FILE] READ %s...\r\n", path);
   File file = fs.open(path, "r");
   if(!file || file.isDirectory()){
     Serial.println("[FILE] OPEN... failure");
@@ -79,7 +79,8 @@ String readFile(fs::FS &fs, const char * path){
 }
 
 void writeFile(fs::FS &fs, const char * path, const char * message){
-  Serial.printf("[FILE] WRITE %s:\r\n", path);
+  Serial.printf("[FILE] WRITE %s...\r\n", path);
+  Serial.println(message);
   File file = fs.open(path, "w");
   if(!file){
     Serial.println("[FILE] OPEN... failure");
@@ -101,7 +102,6 @@ void configure(AsyncWebServerRequest *request) {
   } else {
     inputMessage = "[HTTP] /configure: No message sent";
   }
-  Serial.println(inputMessage);
   request->send(200, "text/text", inputMessage);
 }
 
