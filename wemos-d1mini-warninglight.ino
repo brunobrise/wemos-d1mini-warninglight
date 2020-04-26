@@ -91,6 +91,7 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
   } else {
     Serial.println("[FILE] WRITE... failure");
   }
+  file.close();
 }
 
 void configure(AsyncWebServerRequest *request) {
@@ -127,7 +128,9 @@ void setup() {
     return;
   }
   // store default values
-  writeFile(SPIFFS, "/endpoint_url.txt", endpoint_url_default);
+  if(readFile(SPIFFS, "/endpoint_url.txt") == "") {
+    writeFile(SPIFFS, "/endpoint_url.txt", endpoint_url_default);
+  }
 
   Serial.println();
   Serial.println();
