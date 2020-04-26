@@ -31,6 +31,10 @@ void handleRoot(AsyncWebServerRequest *request) {
   request->send(200, "text/plain", "YOLO!");
 }
 
+void notFound(AsyncWebServerRequest *request) {
+  request->send(404, "text/plain", "");
+}
+
 void setup() {
   // initialize pin
   pinMode(pin_relay, OUTPUT);
@@ -69,7 +73,9 @@ void setup() {
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
 
+  // Set routes
   server.on("/", HTTP_GET, handleRoot);
+  server.onNotFound(notFound);
   server.begin();
 }
 
