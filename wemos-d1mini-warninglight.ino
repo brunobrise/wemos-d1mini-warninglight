@@ -25,7 +25,7 @@ const char* password = "REPLACE_WITH_YOUR_PASSWORD";
 const char* endpoint_url_default = "";
 const uint8_t pin_relay = 5;
 const uint8_t setup_wait = 5;
-const uint8_t check_delay = 15000;
+const unsigned long check_delay = 15000;
 
 const char* PARAM_ENDPOINT_URL = "endpoint_url";
 
