@@ -22,17 +22,87 @@ AsyncWebServer server(80);
 // REPLACE WITH YOUR NETWORK CREDENTIALS
 const char* ssid = "REPLACE_WITH_YOUR_SSID";
 const char* password = "REPLACE_WITH_YOUR_PASSWORD";
-const char* endpoint_url = "REPLACE_WITH_YOUR_ENDPOINT_URL";
+const char* endpoint_url_default = "";
 const uint8_t pin_relay = 5;
 const uint8_t setup_wait = 5;
 const uint8_t check_delay = 15000;
 
+const char* PARAM_ENDPOINT_URL = "endpoint_url";
+
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html><head>
+  <title>Warning Light</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    function submitMessage() {
+      setTimeout(function(){ document.location.reload(false); }, 500);   
+    }
+  </script></head><body>
+  <form action="/configure" target="hidden-form">
+    <label for="endpoint_url">Endpoint URL</label>
+    <input type="text " name="endpoint_url" placeholder="%endpoint_url%" value="%endpoint_url%">
+    <input type="submit" value="Save" onclick="submitMessage()">
+  </form>
+  <iframe style="display:none" name="hidden-form"></iframe>
+</body></html>)rawliteral";
+
 void handleRoot(AsyncWebServerRequest *request) {
-  request->send(200, "text/plain", "YOLO!");
+  request->send_P(200, "text/html", index_html, processor);
 }
 
 void notFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", "");
+}
+
+String readFile(fs::FS &fs, const char * path){
+  Serial.printf("[FILE] READ %s:\r\n", path);
+  File file = fs.open(path, "r");
+  if(!file || file.isDirectory()){
+    Serial.println("[FILE] OPEN... failure");
+    return String();
+  }
+  String fileContent;
+  while(file.available()){
+    fileContent+=String((char)file.read());
+  }
+  Serial.println(fileContent);
+  return fileContent;
+}
+
+void writeFile(fs::FS &fs, const char * path, const char * message){
+  Serial.printf("[FILE] WRITE %s:\r\n", path);
+  File file = fs.open(path, "w");
+  if(!file){
+    Serial.println("[FILE] OPEN... failure");
+    return;
+  }
+  if(file.print(message)){
+    Serial.println("[FILE] WRITE... success");
+  } else {
+    Serial.println("[FILE] WRITE... failure");
+  }
+}
+
+void configure(AsyncWebServerRequest *request) {
+    Serial.println("[HTTP] /configure");
+    String inputMessage;
+    if (request->hasParam(PARAM_ENDPOINT_URL)) {
+      inputMessage = request->getParam(PARAM_ENDPOINT_URL)->value();
+      writeFile(SPIFFS, "/endpoint_url.txt", inputMessage.c_str());
+    } else {
+      inputMessage = "[HTTP] /configure: No message sent";
+    }
+    Serial.println(inputMessage);
+    request->send(200, "text/text", inputMessage);
+}
+
+// replace placeholder with stored values
+String processor(const String& var){
+  //Serial.println(var);
+  if(var == "endpoint_url"){
+    return readFile(SPIFFS, "/endpoint_url.txt");
+  }
+  return String();
 }
 
 void setup() {
@@ -41,6 +111,14 @@ void setup() {
 
   Serial.begin(115200);
   // Serial.setDebugOutput(true);
+
+  // initialize SPIFFS
+  if(!SPIFFS.begin()){
+    Serial.println("[SPIFFS] Error on mount");
+    return;
+  }
+  // store default values
+  writeFile(SPIFFS, "/endpoint_url.txt", endpoint_url_default);
 
   Serial.println();
   Serial.println();
@@ -75,6 +153,7 @@ void setup() {
 
   // Set routes
   server.on("/", HTTP_GET, handleRoot);
+  server.on("/configure", HTTP_GET, configure);
   server.onNotFound(notFound);
   server.begin();
 }
@@ -88,7 +167,7 @@ void loop() {
     http.setTimeout(5000);
 
     Serial.print("[HTTP] begin...\n");
-    if (http.begin(client, endpoint_url)) {
+    if (http.begin(client, readFile(SPIFFS, "/endpoint_url.txt"))) {
       Serial.print("[HTTP] GET...\n");
       int httpCode = http.GET();
 
