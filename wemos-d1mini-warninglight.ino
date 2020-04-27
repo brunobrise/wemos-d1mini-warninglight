@@ -11,6 +11,7 @@
 
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
+#include <ESPAsyncWiFiManager.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
@@ -18,6 +19,7 @@
 
 ESP8266WiFiMulti WiFiMulti;
 AsyncWebServer server(80);
+DNSServer dns;
 
 // REPLACE WITH YOUR NETWORK CREDENTIALS
 const char* ssid = "REPLACE_WITH_YOUR_SSID";
@@ -111,6 +113,9 @@ const char admin_html[] PROGMEM = R"rawliteral(
         <input class="flex-grow-0 bg-green-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-1" type="submit" value="Save" onclick="submitMessage()">
       </div>    
     </form>
+    <form class="flex items-center mt-4" action="/wifi/disconnect" target="hidden-form">
+      <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Disconnect WiFi" onclick="submitMessage()">
+    </form>
     <form class="flex items-center mt-8" action="/reset" target="hidden-form">
       <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Reset" onclick="submitMessage()">
     </form>
@@ -165,6 +170,13 @@ void handleRestart(AsyncWebServerRequest *request) {
   request->send(200, "text/html", redirect_home);
   delay(2000);
   restart();
+}
+
+void handleWiFiDisconnect(AsyncWebServerRequest *request) {
+  logRoute(request);
+  request->send(200, "text/html", redirect_home);
+  delay(2000);
+  disconnectWiFi();
 }
 
 String readFile(fs::FS &fs, const char * path){
@@ -237,9 +249,20 @@ void reset() {
   delay(1000);
 }
 
-void restart() {
+void restart() { 
   ESP.restart();
   delay(1000);
+}
+
+void disconnectWiFi() {
+  Serial.print("[WIFI] Disconnect...");
+  AsyncWiFiManager wifiManager(&server,&dns);
+  wifiManager.resetSettings();
+  if(WiFi.status() == WL_DISCONNECTED ) {
+    Serial.println(" success");
+    return;
+  }    
+  Serial.println(" failure");
 }
 
 void setup() {
@@ -301,6 +324,7 @@ void setup() {
   server.on("/configure", HTTP_GET, configure);
   server.on("/reset", HTTP_GET, handleReset);
   server.on("/restart", HTTP_GET, handleRestart);
+  server.on("/wifi/disconnect", HTTP_GET, handleWiFiDisconnect);
   server.onNotFound(notFound);
   server.begin();
 }
