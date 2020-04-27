@@ -130,16 +130,16 @@ const char admin_html[] PROGMEM = R"rawliteral(
     </section>
     <section class="mt-4">
       <h2 class="text-lg font-bold mb-4">WiFi</h2>
-      <form class="flex items-center" action="/wifi/disconnect" target="hidden-form">
+      <form class="flex items-center" action="/wifi/disconnect" method="post" target="hidden-form">
         <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Forget network" onclick="submitMessage()">
       </form>
     </section>
     <section class="mt-4">
       <h2 class="text-lg font-bold mb-4">Board</h2>
-      <form class="flex items-center" action="/restart" target="hidden-form">
+      <form class="flex items-center" action="/restart" method="post" target="hidden-form">
         <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Restart" onclick="submitMessage()">
       </form>
-      <form class="flex items-center mt-4" action="/reset" target="hidden-form">
+      <form class="flex items-center mt-4" action="/reset" method="post" target="hidden-form">
         <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Reset" onclick="submitMessage()">
       </form>
       <form class="flex items-center mt-4" action="/reset/factory" method="post" target="hidden-form">
@@ -167,6 +167,11 @@ void logRoute(AsyncWebServerRequest *request) {
   Serial.println(request->url());
 }
 
+void notFound(AsyncWebServerRequest *request) {
+  logRoute(request);
+  request->send(404, "text/plain", "");
+}
+
 void handleRoot(AsyncWebServerRequest *request) {
   logRoute(request);
   request->send_P(200, "text/html", index_html, processor);
@@ -177,9 +182,19 @@ void handleAdmin(AsyncWebServerRequest *request) {
   request->send_P(200, "text/html", admin_html, processor);
 }
 
-void notFound(AsyncWebServerRequest *request) {
+void handleConfigure(AsyncWebServerRequest *request) {
   logRoute(request);
-  request->send(404, "text/plain", "");
+  String inputMessage;
+  if (request->hasParam(PARAM_ENDPOINT_URL)) {
+    inputMessage = request->getParam(PARAM_ENDPOINT_URL)->value();
+    writeFile(SPIFFS, "/endpoint_url.txt", inputMessage.c_str());
+  } else if (request->hasParam(PARAM_CHECK_PERIOD)) {
+    inputMessage = request->getParam(PARAM_CHECK_PERIOD)->value();
+    writeFile(SPIFFS, "/check_period.txt", inputMessage.c_str());
+  } else {
+    inputMessage = "[HTTP] /configure: No message sent";
+  }
+  request->send(200, "text/text", inputMessage);
 }
 
 void handleReset(AsyncWebServerRequest *request) {
@@ -238,21 +253,6 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
     Serial.println("[FILE] WRITE... failure");
   }
   file.close();
-}
-
-void configure(AsyncWebServerRequest *request) {
-  logRoute(request);
-  String inputMessage;
-  if (request->hasParam(PARAM_ENDPOINT_URL)) {
-    inputMessage = request->getParam(PARAM_ENDPOINT_URL)->value();
-    writeFile(SPIFFS, "/endpoint_url.txt", inputMessage.c_str());
-  } else if (request->hasParam(PARAM_CHECK_PERIOD)) {
-    inputMessage = request->getParam(PARAM_CHECK_PERIOD)->value();
-    writeFile(SPIFFS, "/check_period.txt", inputMessage.c_str());
-  } else {
-    inputMessage = "[HTTP] /configure: No message sent";
-  }
-  request->send(200, "text/text", inputMessage);
 }
 
 // replace placeholder with stored values
@@ -375,11 +375,11 @@ void setup() {
   // Set routes
   server.on("/", HTTP_GET, handleRoot);
   server.on("/admin", HTTP_GET, handleAdmin);
-  server.on("/configure", HTTP_GET, configure);
+  server.on("/configure", HTTP_GET, handleConfigure);
   server.on("/reset/factory", HTTP_POST, handleResetFactory);
-  server.on("/reset", HTTP_GET, handleReset);
-  server.on("/restart", HTTP_GET, handleRestart);
-  server.on("/wifi/disconnect", HTTP_GET, handleWiFiDisconnect);
+  server.on("/reset", HTTP_POST, handleReset);
+  server.on("/restart", HTTP_POST, handleRestart);
+  server.on("/wifi/disconnect", HTTP_POST, handleWiFiDisconnect);
   server.onNotFound(notFound);
   server.begin();
 }
