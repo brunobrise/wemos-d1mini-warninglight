@@ -30,10 +30,10 @@ AsyncWebServer server(80);
 DNSServer dns;
 DoubleResetDetect drd(DRD_TIMEOUT, DRD_ADDRESS);
 
-// REPLACE WITH YOUR NETWORK CREDENTIALS
-const char* endpoint_url_default = "";
 const uint8_t pin_relay = 5;
 const uint8_t setup_wait = 5;
+
+const char* endpoint_url_default = "";
 const unsigned int check_period_default = 15000;
 
 const char* PARAM_ENDPOINT_URL = "endpoint_url";
