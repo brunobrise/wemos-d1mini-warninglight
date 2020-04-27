@@ -75,6 +75,10 @@ const char index_html[] PROGMEM = R"rawliteral(
     <div class="flex flex-wrap justify-center mt-4">
       <h1 class="text-xl font-bold mb-2 text-gray-900">SYSTEM INFORMATION</h1>
       <div class="w-full flex justify-center items-center text-black mr-6">
+        <svg class="fill-current text-gray-800  h-8 w-8 mr-2" width="54" height="54" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M416 48v416c0 26.51-21.49 48-48 48H144c-26.51 0-48-21.49-48-48V48c0-26.51 21.49-48 48-48h224c26.51 0 48 21.49 48 48zm96 58v12a6 6 0 0 1-6 6h-18v6a6 6 0 0 1-6 6h-42V88h42a6 6 0 0 1 6 6v6h18a6 6 0 0 1 6 6zm0 96v12a6 6 0 0 1-6 6h-18v6a6 6 0 0 1-6 6h-42v-48h42a6 6 0 0 1 6 6v6h18a6 6 0 0 1 6 6zm0 96v12a6 6 0 0 1-6 6h-18v6a6 6 0 0 1-6 6h-42v-48h42a6 6 0 0 1 6 6v6h18a6 6 0 0 1 6 6zm0 96v12a6 6 0 0 1-6 6h-18v6a6 6 0 0 1-6 6h-42v-48h42a6 6 0 0 1 6 6v6h18a6 6 0 0 1 6 6zM30 376h42v48H30a6 6 0 0 1-6-6v-6H6a6 6 0 0 1-6-6v-12a6 6 0 0 1 6-6h18v-6a6 6 0 0 1 6-6zm0-96h42v48H30a6 6 0 0 1-6-6v-6H6a6 6 0 0 1-6-6v-12a6 6 0 0 1 6-6h18v-6a6 6 0 0 1 6-6zm0-96h42v48H30a6 6 0 0 1-6-6v-6H6a6 6 0 0 1-6-6v-12a6 6 0 0 1 6-6h18v-6a6 6 0 0 1 6-6zm0-96h42v48H30a6 6 0 0 1-6-6v-6H6a6 6 0 0 1-6-6v-12a6 6 0 0 1 6-6h18v-6a6 6 0 0 1 6-6z" class=""></path></svg>
+        <span class="font-semibold text-md text-gray-800 tracking-tight">%cpu_frequency%</span>
+      </div>
+      <div class="w-full flex justify-center items-center text-black mr-6 mt-4">
         <svg class="fill-current text-gray-800  h-8 w-8 mr-2" width="54" height="54" viewBox="0 0 640 512" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M640 130.94V96c0-17.67-14.33-32-32-32H32C14.33 64 0 78.33 0 96v34.94c18.6 6.61 32 24.19 32 45.06s-13.4 38.45-32 45.06V320h640v-98.94c-18.6-6.61-32-24.19-32-45.06s13.4-38.45 32-45.06zM224 256h-64V128h64v128zm128 0h-64V128h64v128zm128 0h-64V128h64v128zM0 448h64v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h128v-26.67c0-8.84 7.16-16 16-16s16 7.16 16 16V448h64v-96H0v96z" class=""></path></svg>
         <span class="font-semibold text-md text-gray-800 tracking-tight">%system_heap%</span>
       </div>
@@ -264,6 +268,9 @@ String processor(const String& var){
     return readFile(SPIFFS, "/check_period.txt");
   } else if(var == "check_status") {
     return readFile(SPIFFS, "/check_status.txt");
+  } else if(var == "cpu_frequency") {
+    String cpu_frequency = String(ESP.getCpuFreqMHz()) + " MHz";
+    return cpu_frequency;
   } else if(var == "system_heap") {
     String system_heap = String(ESP.getFreeHeap()) + " bytes";
     return system_heap;
