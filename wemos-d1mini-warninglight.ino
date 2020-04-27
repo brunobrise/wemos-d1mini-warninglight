@@ -174,6 +174,7 @@ String readFile(fs::FS &fs, const char * path){
   while(file.available()){
     fileContent+=String((char)file.read());
   }
+  file.close();
   Serial.println(fileContent);
   return fileContent;
 }
