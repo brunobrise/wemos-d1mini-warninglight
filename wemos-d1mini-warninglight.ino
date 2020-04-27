@@ -97,32 +97,38 @@ const char admin_html[] PROGMEM = R"rawliteral(
     </div>
   </nav>
   <div class="w-full px-4">
-    <form class="flex flex-col mt-4" action="/configure" target="hidden-form">
-      <label class="flex-grow text-gray-700 text-sm font-bold" for="endpoint_url">Endpoint URL</label>
-      <div class="flex flex-row flex-grow-0">
-        <input class="flex-grow shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="text " name="endpoint_url" placeholder="%endpoint_url%" value="%endpoint_url%">
-        <input class="flex-grow-0 bg-green-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-1" type="submit" value="Save" onclick="submitMessage()">
-      </div>    
-    </form>
-    <form class="flex flex-col mt-4" action="/configure" target="hidden-form">
-      <label class="flex-grow text-gray-700 text-sm font-bold" for="check_period">Check period</label>
-      <div class="flex flex-row flex-grow-0">
-        <input class="flex-grow shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="text " name="check_period" placeholder="%check_period%" value="%check_period%">
-        <input class="flex-grow-0 bg-green-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-1" type="submit" value="Save" onclick="submitMessage()">
-      </div>    
-    </form>
     <section class="mt-4">
-      <h2 class="text-lg font-bold">WiFi</h2>
-      <form class="flex items-center mt-4" action="/wifi/disconnect" target="hidden-form">
+      <h2 class="text-lg font-bold mb-4">Probe</h2>
+      <form class="flex flex-col" action="/configure" target="hidden-form">
+        <label class="flex-grow text-gray-700 text-sm font-bold" for="endpoint_url">Endpoint URL</label>
+        <div class="flex flex-row flex-grow-0">
+          <input class="flex-grow shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="text " name="endpoint_url" placeholder="%endpoint_url%" value="%endpoint_url%">
+          <input class="flex-grow-0 bg-green-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-1" type="submit" value="Save" onclick="submitMessage()">
+        </div>    
+      </form>
+      <form class="flex flex-col mt-4" action="/configure" target="hidden-form">
+        <label class="flex-grow text-gray-700 text-sm font-bold" for="check_period">Check period</label>
+        <div class="flex flex-row flex-grow-0">
+          <input class="flex-grow shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="text " name="check_period" placeholder="%check_period%" value="%check_period%">
+          <input class="flex-grow-0 bg-green-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-1" type="submit" value="Save" onclick="submitMessage()">
+        </div>    
+      </form>
+    </section>
+    <section class="mt-4">
+      <h2 class="text-lg font-bold mb-4">WiFi</h2>
+      <form class="flex items-center" action="/wifi/disconnect" target="hidden-form">
         <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Forget network" onclick="submitMessage()">
       </form>
     </section>
-    <form class="flex items-center mt-8" action="/reset" target="hidden-form">
-      <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Reset" onclick="submitMessage()">
-    </form>
-    <form class="flex items-center mt-4" action="/restart" target="hidden-form">
-      <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Restart" onclick="submitMessage()">
-    </form>
+    <section class="mt-4">
+      <h2 class="text-lg font-bold mb-4">Board</h2>
+      <form class="flex items-center" action="/reset" target="hidden-form">
+        <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Reset" onclick="submitMessage()">
+      </form>
+      <form class="flex items-center mt-4" action="/restart" target="hidden-form">
+        <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Restart" onclick="submitMessage()">
+      </form>
+    </section>
     <a class="block text-center text-xs underline mt-6" href="/">Go to Dashboard</a>
   </div>
   <iframe style="display:none" name="hidden-form"></iframe>
