@@ -111,9 +111,12 @@ const char admin_html[] PROGMEM = R"rawliteral(
         <input class="flex-grow-0 bg-green-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-1" type="submit" value="Save" onclick="submitMessage()">
       </div>    
     </form>
-    <form class="flex items-center mt-4" action="/wifi/disconnect" target="hidden-form">
-      <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Disconnect WiFi" onclick="submitMessage()">
-    </form>
+    <section class="mt-4">
+      <h2 class="text-lg font-bold">WiFi</h2>
+      <form class="flex items-center mt-4" action="/wifi/disconnect" target="hidden-form">
+        <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Forget network" onclick="submitMessage()">
+      </form>
+    </section>
     <form class="flex items-center mt-8" action="/reset" target="hidden-form">
       <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Reset" onclick="submitMessage()">
     </form>
@@ -172,8 +175,7 @@ void handleRestart(AsyncWebServerRequest *request) {
 
 void handleWiFiDisconnect(AsyncWebServerRequest *request) {
   logRoute(request);
-  request->send(200, "text/html", redirect_home);
-  delay(2000);
+  request->send(200, "text/html", "redirect_home");
   disconnectWiFi();
 }
 
@@ -258,6 +260,7 @@ void disconnectWiFi() {
   wifiManager.resetSettings();
   if(WiFi.status() == WL_DISCONNECTED ) {
     Serial.println(" success");
+    reset();
     return;
   }    
   Serial.println(" failure");
