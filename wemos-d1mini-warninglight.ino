@@ -22,8 +22,6 @@ AsyncWebServer server(80);
 DNSServer dns;
 
 // REPLACE WITH YOUR NETWORK CREDENTIALS
-const char* ssid = "REPLACE_WITH_YOUR_SSID";
-const char* password = "REPLACE_WITH_YOUR_PASSWORD";
 const char* endpoint_url_default = "";
 const uint8_t pin_relay = 5;
 const uint8_t setup_wait = 5;
@@ -271,6 +269,10 @@ void setup() {
 
   Serial.begin(115200);
   // Serial.setDebugOutput(true);
+  
+  Serial.println();
+  Serial.println();
+  Serial.println();
 
   // initialize SPIFFS
   if(!SPIFFS.begin()){
@@ -287,10 +289,6 @@ void setup() {
     writeFile(SPIFFS, "/check_period.txt", check_period);
   }
 
-  Serial.println();
-  Serial.println();
-  Serial.println();
-
   for (uint8_t t = setup_wait; t > 0; t--) {
     Serial.printf("[SETUP] WAIT %d...\n", t);
     Serial.flush();
@@ -302,20 +300,20 @@ void setup() {
   // keep the warning light on
   digitalWrite(pin_relay, HIGH);
 
-  // connect to WiFi network
-  WiFi.mode(WIFI_STA);
-  WiFiMulti.addAP(ssid, password);
-
+  // connect to WiFi
+  AsyncWiFiManager wifiManager(&server,&dns);
+  wifiManager.autoConnect();
+  
   // wait for WiFi connection
+  Serial.print("[WIFI] CONNECT");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
+  Serial.println(" connected");
   
   // show IP address
-  Serial.println("");
-  Serial.println("[SETUP] WiFi connected");
-  Serial.print("[SETUP] IP address: ");
+  Serial.print("[WIFI] IP address: ");
   Serial.println(WiFi.localIP());
 
   // Set routes
