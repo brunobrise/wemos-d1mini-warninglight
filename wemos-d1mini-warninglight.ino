@@ -10,6 +10,7 @@
 *********/
 
 #include <Arduino.h>
+#include <DoubleResetDetect.h>
 #include <ESPAsyncWebServer.h>
 #include <ESPAsyncWiFiManager.h>
 #include <ESP8266WiFi.h>
@@ -17,9 +18,17 @@
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
 
+// maximum number of seconds between resets that
+// counts as a double reset 
+#define DRD_TIMEOUT 2.0
+
+// address to the block in the RTC user memory
+#define DRD_ADDRESS 0x00
+
 ESP8266WiFiMulti WiFiMulti;
 AsyncWebServer server(80);
 DNSServer dns;
+DoubleResetDetect drd(DRD_TIMEOUT, DRD_ADDRESS);
 
 // REPLACE WITH YOUR NETWORK CREDENTIALS
 const char* endpoint_url_default = "";
@@ -86,8 +95,13 @@ const char admin_html[] PROGMEM = R"rawliteral(
   <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script>
-    function submitMessage() {
-      setTimeout(function(){ document.location.reload(false); }, 500);   
+    function submitMessage(type) {
+      if (type === "resetFactory" && confirm("Factory Reset\n\nWipe all data ?\nTHIS CAN NOT BE UNDONE!")) {
+
+      } else {
+        setTimeout(function(){ document.location.reload(false); }, 500);
+      }
+         
     }
   </script></head><body>
   <nav class="flex items-center justify-between flex-wrap bg-black p-6">
@@ -122,11 +136,14 @@ const char admin_html[] PROGMEM = R"rawliteral(
     </section>
     <section class="mt-4">
       <h2 class="text-lg font-bold mb-4">Board</h2>
-      <form class="flex items-center" action="/reset" target="hidden-form">
+      <form class="flex items-center" action="/restart" target="hidden-form">
+        <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Restart" onclick="submitMessage()">
+      </form>
+      <form class="flex items-center mt-4" action="/reset" target="hidden-form">
         <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Reset" onclick="submitMessage()">
       </form>
-      <form class="flex items-center mt-4" action="/restart" target="hidden-form">
-        <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Restart" onclick="submitMessage()">
+      <form class="flex items-center mt-4" action="/reset/factory" method="post" target="hidden-form">
+        <input class="bg-red-700 hover:bg-red-700 text-white font-bold py-2 rounded focus:outline-none focus:shadow-outline flex-grow" type="submit" value="Factory reset" onclick="submitMessage('resetFactory')">
       </form>
     </section>
     <a class="block text-center text-xs underline mt-6" href="/">Go to Dashboard</a>
@@ -170,6 +187,12 @@ void handleReset(AsyncWebServerRequest *request) {
   request->send(200, "text/html", redirect_home);
   delay(2000);
   reset();
+}
+
+void handleResetFactory(AsyncWebServerRequest *request) {
+  logRoute(request);
+  request->send(200, "text/html", redirect_home);
+  resetFactory();
 }
 
 void handleRestart(AsyncWebServerRequest *request) {
@@ -255,6 +278,24 @@ void reset() {
   delay(1000);
 }
 
+void resetFactory() {
+    Serial.println("[SYSTEM] Factory reset...");
+
+    Serial.print("[SYSTEM] Clear WiFi credentials...");
+    AsyncWiFiManager wifiManager(&server,&dns);
+    wifiManager.resetSettings();
+    Serial.print(" success");
+
+    Serial.print("[SYSTEM] Format filesystem...");      
+    if(SPIFFS.format()) {
+      Serial.print(" success");
+    } else {
+      Serial.print(" failure");
+    }
+
+    reset();
+}
+
 void restart() { 
   ESP.restart();
   delay(1000);
@@ -273,6 +314,12 @@ void disconnectWiFi() {
 }
 
 void setup() {
+  // check double reset
+  if (drd.detect()) {
+    Serial.println("[SYSTEM] Double reset detected");
+    resetFactory();
+  }
+
   // initialize pin
   pinMode(pin_relay, OUTPUT);
 
@@ -329,6 +376,7 @@ void setup() {
   server.on("/", HTTP_GET, handleRoot);
   server.on("/admin", HTTP_GET, handleAdmin);
   server.on("/configure", HTTP_GET, configure);
+  server.on("/reset/factory", HTTP_POST, handleResetFactory);
   server.on("/reset", HTTP_GET, handleReset);
   server.on("/restart", HTTP_GET, handleRestart);
   server.on("/wifi/disconnect", HTTP_GET, handleWiFiDisconnect);
