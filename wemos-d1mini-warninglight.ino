@@ -35,7 +35,8 @@ const uint8_t pin_relay = 5;
 const uint8_t setup_wait = 5;
 
 const char* endpoint_url_default = "";
-const unsigned int check_period_default = 15000;
+const unsigned long check_period_default = 15000;
+unsigned long check_period_time = 0;
 
 const char* PARAM_ENDPOINT_URL = "endpoint_url";
 const char* PARAM_CHECK_PERIOD = "check_period";
@@ -430,6 +431,14 @@ void loop() {
   
   // check WiFi connection (connect if required)
   if ((WiFiMulti.run() == WL_CONNECTED)) {
+    // check timer
+    unsigned long current_time = millis();
+    const unsigned long check_period = atol(readFile(SPIFFS, "/check_period.txt").c_str());
+    if (current_time - check_period_time < check_period) {
+      return;
+    }
+    check_period_time = current_time;
+    
     WiFiClient client;
 
     HTTPClient http;
@@ -477,7 +486,4 @@ void loop() {
       }
     }
   }
-
-  // wait for specified duration before requesting current status
-  delay(atol(readFile(SPIFFS, "/check_period.txt").c_str()));
 }
