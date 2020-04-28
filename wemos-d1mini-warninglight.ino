@@ -35,11 +35,11 @@ const uint8_t pin_relay = 5;
 const uint8_t setup_wait = 5;
 
 const char* endpoint_url_default = "";
-const unsigned long check_period_default = 15000;
-unsigned long check_period_time = 0;
+const unsigned long check_interval_default = 15000;
+unsigned long check_interval_time = 0;
 
 const char* PARAM_ENDPOINT_URL = "endpoint_url";
-const char* PARAM_CHECK_PERIOD = "check_period";
+const char* PARAM_CHECK_INTERVAL = "check_interval";
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html><head>
@@ -127,9 +127,9 @@ const char admin_html[] PROGMEM = R"rawliteral(
         </div>    
       </form>
       <form class="flex flex-col mt-4" action="/configure" target="hidden-form">
-        <label class="flex-grow text-gray-700 text-sm font-bold" for="check_period">Check period</label>
+        <label class="flex-grow text-gray-700 text-sm font-bold" for="check_interval">Check interval</label>
         <div class="flex flex-row flex-grow-0">
-          <input class="flex-grow shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="text " name="check_period" placeholder="%check_period%" value="%check_period%">
+          <input class="flex-grow shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="text " name="check_interval" placeholder="%check_interval%" value="%check_interval%">
           <input class="flex-grow-0 bg-green-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-1" type="submit" value="Save" onclick="submitMessage()">
         </div>    
       </form>
@@ -194,9 +194,9 @@ void handleConfigure(AsyncWebServerRequest *request) {
   if (request->hasParam(PARAM_ENDPOINT_URL)) {
     inputMessage = request->getParam(PARAM_ENDPOINT_URL)->value();
     writeFile(SPIFFS, "/endpoint_url.txt", inputMessage.c_str());
-  } else if (request->hasParam(PARAM_CHECK_PERIOD)) {
-    inputMessage = request->getParam(PARAM_CHECK_PERIOD)->value();
-    writeFile(SPIFFS, "/check_period.txt", inputMessage.c_str());
+  } else if (request->hasParam(PARAM_CHECK_INTERVAL)) {
+    inputMessage = request->getParam(PARAM_CHECK_INTERVAL)->value();
+    writeFile(SPIFFS, "/check_interval.txt", inputMessage.c_str());
   } else {
     inputMessage = "[HTTP] /configure: No message sent";
   }
@@ -266,8 +266,8 @@ String processor(const String& var){
   //Serial.println(var);
   if(var == "endpoint_url"){
     return readFile(SPIFFS, "/endpoint_url.txt");
-  } else if(var == "check_period") {
-    return readFile(SPIFFS, "/check_period.txt");
+  } else if(var == "check_interval") {
+    return readFile(SPIFFS, "/check_interval.txt");
   } else if(var == "check_status") {
     return readFile(SPIFFS, "/check_status.txt");
   } else if(var == "cpu_frequency") {
@@ -378,10 +378,10 @@ void setup() {
   if(readFile(SPIFFS, "/endpoint_url.txt") == "") {
     writeFile(SPIFFS, "/endpoint_url.txt", endpoint_url_default);
   }
-  if(readFile(SPIFFS, "/check_period.txt") == "") {
+  if(readFile(SPIFFS, "/check_interval.txt") == "") {
     char cstr[16];
-    const char* check_period = itoa(check_period_default, cstr, 10);
-    writeFile(SPIFFS, "/check_period.txt", check_period);
+    const char* check_interval = itoa(check_interval_default, cstr, 10);
+    writeFile(SPIFFS, "/check_interval.txt", check_interval);
   }
 
   for (uint8_t t = setup_wait; t > 0; t--) {
@@ -433,11 +433,11 @@ void loop() {
   if ((WiFiMulti.run() == WL_CONNECTED)) {
     // check timer
     unsigned long current_time = millis();
-    const unsigned long check_period = atol(readFile(SPIFFS, "/check_period.txt").c_str());
-    if (current_time - check_period_time < check_period) {
+    const unsigned long check_interval = atol(readFile(SPIFFS, "/check_interval.txt").c_str());
+    if (current_time - check_interval_time < check_interval) {
       return;
     }
-    check_period_time = current_time;
+    check_interval_time = current_time;
     
     WiFiClient client;
 
