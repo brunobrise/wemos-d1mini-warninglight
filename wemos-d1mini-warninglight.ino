@@ -10,6 +10,7 @@
 *********/
 
 #include <Arduino.h>
+#include <ArduinoOTA.h>
 #include <DoubleResetDetect.h>
 #include <ESPAsyncWebServer.h>
 #include <ESPAsyncWiFiManager.h>
@@ -320,6 +321,36 @@ void disconnectWiFi() {
   Serial.println(" failure");
 }
 
+void ota(){
+  // Hostname defaults to esp8266-[ChipID]
+  // char cstr[16];
+  // const char* chip_id = itoa(ESP.getChipId(), cstr, 10);
+  // ArduinoOTA.setHostname(chip_id);
+
+  // No authentication by default
+  ArduinoOTA.setPassword((const char *)"845210");
+
+  ArduinoOTA.onStart([]() {
+    Serial.println("[OTA] Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\n[OTA] End");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("[OTA] Progress %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("[OTA] Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+  Serial.println("[OTA] Ready");
+}
+
 void setup() {
   // check double reset
   if (drd.detect()) {
@@ -379,6 +410,9 @@ void setup() {
   Serial.print("[WIFI] IP address: ");
   Serial.println(WiFi.localIP());
 
+  // initialize OTA
+  ota();
+
   // Set routes
   server.on("/", HTTP_GET, handleRoot);
   server.on("/admin", HTTP_GET, handleAdmin);
@@ -392,6 +426,8 @@ void setup() {
 }
 
 void loop() {
+  ArduinoOTA.handle();
+  
   // check WiFi connection (connect if required)
   if ((WiFiMulti.run() == WL_CONNECTED)) {
     WiFiClient client;
