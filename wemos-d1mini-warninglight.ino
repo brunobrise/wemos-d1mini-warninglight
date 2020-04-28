@@ -322,6 +322,55 @@ void disconnectWiFi() {
   Serial.println(" failure");
 }
 
+void checkEndpoint() {
+  WiFiClient client;
+
+  HTTPClient http;
+  http.setTimeout(5000);
+
+  Serial.print("[HTTP] begin...\n");
+  if (http.begin(client, readFile(SPIFFS, "/endpoint_url.txt"))) {
+    Serial.print("[HTTP] GET...\n");
+    int httpCode = http.GET();
+
+    if (httpCode > 0) { // httpCode will be negative on error
+      // HTTP header has been send and Server response header has been handled
+      Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+
+      // file found at server
+      if (httpCode == HTTP_CODE_OK) {          
+        String payload = http.getString();
+        Serial.println(payload);
+        
+        if ((payload == "ok" || payload == "up" || payload == "pass")
+          && digitalRead(pin_relay) == HIGH) { // switch off the warning light, if on
+          digitalWrite(pin_relay, LOW);
+          payload = "pass";
+        } else if (payload == "fail"
+          && digitalRead(pin_relay) == LOW) {  // switch on the warning light, if off
+          digitalWrite(pin_relay, HIGH);
+          payload = "fail";
+        }
+        char status[payload.length()+1];
+        payload.toCharArray(status, payload.length()+1);
+        writeFile(SPIFFS, "/check_status.txt", status);
+      }
+    } else { // error with unsupported HTTP code
+      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+      if (digitalRead(pin_relay) == LOW) {
+        digitalWrite(pin_relay, HIGH);
+      }
+    }
+
+    http.end();
+  } else { // unable to contact server
+    Serial.printf("[HTTP] Unable to connect\n");
+    if (digitalRead(pin_relay) == LOW) {
+      digitalWrite(pin_relay, HIGH);
+    }
+  }
+}
+
 void ota(){
   // Hostname defaults to esp8266-[ChipID]
   // char cstr[16];
@@ -438,52 +487,7 @@ void loop() {
       return;
     }
     check_interval_time = current_time;
-    
-    WiFiClient client;
 
-    HTTPClient http;
-    http.setTimeout(5000);
-
-    Serial.print("[HTTP] begin...\n");
-    if (http.begin(client, readFile(SPIFFS, "/endpoint_url.txt"))) {
-      Serial.print("[HTTP] GET...\n");
-      int httpCode = http.GET();
-
-      if (httpCode > 0) { // httpCode will be negative on error
-        // HTTP header has been send and Server response header has been handled
-        Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
-        // file found at server
-        if (httpCode == HTTP_CODE_OK) {          
-          String payload = http.getString();
-          Serial.println(payload);
-          
-          if ((payload == "ok" || payload == "up" || payload == "pass")
-            && digitalRead(pin_relay) == HIGH) { // switch off the warning light, if on
-            digitalWrite(pin_relay, LOW);
-            payload = "pass";
-          } else if (payload == "fail"
-            && digitalRead(pin_relay) == LOW) {  // switch on the warning light, if off
-            digitalWrite(pin_relay, HIGH);
-            payload = "fail";
-          }
-          char status[payload.length()+1];
-          payload.toCharArray(status, payload.length()+1);
-          writeFile(SPIFFS, "/check_status.txt", status);
-        }
-      } else { // error with unsupported HTTP code
-        Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-        if (digitalRead(pin_relay) == LOW) {
-          digitalWrite(pin_relay, HIGH);
-        }
-      }
-
-      http.end();
-    } else { // unable to contact server
-      Serial.printf("[HTTP] Unable to connect\n");
-      if (digitalRead(pin_relay) == LOW) {
-        digitalWrite(pin_relay, HIGH);
-      }
-    }
+    checkEndpoint();
   }
 }
