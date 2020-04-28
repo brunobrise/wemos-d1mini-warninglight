@@ -230,10 +230,9 @@ void handleWiFiDisconnect(AsyncWebServerRequest *request) {
 }
 
 String readFile(fs::FS &fs, const char * path){
-  Serial.printf("[FILE] READ %s...\r\n", path);
   File file = fs.open(path, "r");
   if(!file || file.isDirectory()){
-    Serial.println("[FILE] OPEN... failure");
+    Serial.printf("[FILE] OPEN %s... failure\r\n", path);
     return String();
   }
   String fileContent;
@@ -241,7 +240,6 @@ String readFile(fs::FS &fs, const char * path){
     fileContent+=String((char)file.read());
   }
   file.close();
-  Serial.println(fileContent);
   return fileContent;
 }
 
