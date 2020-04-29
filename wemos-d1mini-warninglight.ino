@@ -37,9 +37,11 @@ const uint8_t setup_wait = 5;
 const char* endpoint_url_default = "";
 const unsigned long check_interval_default = 15000;
 unsigned long check_interval_time = 0;
+const unsigned long check_retry_default = 3;
 
 const char* PARAM_ENDPOINT_URL = "endpoint_url";
 const char* PARAM_CHECK_INTERVAL = "check_interval";
+const char* PARAM_CHECK_RETRY = "check_retry";
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html><head>
@@ -103,11 +105,10 @@ const char admin_html[] PROGMEM = R"rawliteral(
   <script>
     function submitMessage(type) {
       if (type === "resetFactory" && confirm("Factory Reset\n\nWipe all data ?\nTHIS CAN NOT BE UNDONE!")) {
-
+        
       } else {
         setTimeout(function(){ document.location.reload(false); }, 500);
       }
-         
     }
   </script></head><body>
   <nav class="flex items-center justify-between flex-wrap bg-black p-6">
@@ -132,6 +133,14 @@ const char admin_html[] PROGMEM = R"rawliteral(
           <input class="flex-grow shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="text " name="check_interval" placeholder="%check_interval%" value="%check_interval%">
           <input class="flex-grow-0 bg-green-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-1" type="submit" value="Save" onclick="submitMessage()">
         </div>    
+      </form>
+      <form class="flex flex-col mt-4" action="/configure" target="hidden-form">
+        <label class="flex-grow text-gray-700 text-sm font-bold" for="check_retry">Check retry</label>
+        <div class="flex flex-row flex-grow-0">
+          <input class="flex-grow shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="text " name="check_retry" placeholder="%check_retry%" value="%check_retry%">
+          <input class="flex-grow-0 bg-green-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-1" type="submit" value="Save" onclick="submitMessage()">
+        </div>
+        <p class="text-sm text-gray-600 pl-1">0 to disable retry</p>
       </form>
     </section>
     <section class="mt-4">
@@ -197,6 +206,9 @@ void handleConfigure(AsyncWebServerRequest *request) {
   } else if (request->hasParam(PARAM_CHECK_INTERVAL)) {
     inputMessage = request->getParam(PARAM_CHECK_INTERVAL)->value();
     writeFile(SPIFFS, "/check_interval.txt", inputMessage.c_str());
+  } else if (request->hasParam(PARAM_CHECK_RETRY)) {
+    inputMessage = request->getParam(PARAM_CHECK_RETRY)->value();
+    writeFile(SPIFFS, "/check_retry.txt", inputMessage.c_str());
   } else {
     inputMessage = "[HTTP] /configure: No message sent";
   }
@@ -266,6 +278,8 @@ String processor(const String& var){
     return readFile(SPIFFS, "/endpoint_url.txt");
   } else if(var == "check_interval") {
     return readFile(SPIFFS, "/check_interval.txt");
+  } else if(var == "check_retry") {
+    return readFile(SPIFFS, "/check_retry.txt");
   } else if(var == "check_status") {
     return readFile(SPIFFS, "/check_status.txt");
   } else if(var == "cpu_frequency") {
@@ -320,7 +334,17 @@ void disconnectWiFi() {
   Serial.println(" failure");
 }
 
-void checkEndpoint() {
+void checkEndpoint(int retry) {
+  const unsigned long check_retry = atol(readFile(SPIFFS, "/check_retry.txt").c_str());
+  if (check_retry == 0) {
+    Serial.println("[HTTP] Retry disabled.");
+  } else if (retry < check_retry) {
+    Serial.printf("[HTTP] Retry... %d\n", retry);
+    delay(200);
+  } else if (retry < 0) { // all retries have been performed
+    return;
+  }
+
   WiFiClient client;
 
   HTTPClient http;
@@ -340,32 +364,34 @@ void checkEndpoint() {
         String payload = http.getString();
         Serial.println(payload);
         
-        if ((payload == "ok" || payload == "up" || payload == "pass")
-          && digitalRead(pin_relay) == HIGH) { // switch off the warning light, if on
+        bool pass = (payload == "ok" || payload == "up" || payload == "pass");
+        if (pass && digitalRead(pin_relay) == HIGH) { // switch off the warning light, if on
           digitalWrite(pin_relay, LOW);
-          payload = "pass";
-        } else if (payload == "fail"
-          && digitalRead(pin_relay) == LOW) {  // switch on the warning light, if off
+        } else if (!pass && digitalRead(pin_relay) == LOW) {  // switch on the warning light, if off
           digitalWrite(pin_relay, HIGH);
-          payload = "fail";
         }
-        char status[payload.length()+1];
-        payload.toCharArray(status, payload.length()+1);
-        writeFile(SPIFFS, "/check_status.txt", status);
+        // save last check to memory
+        writeFile(SPIFFS, "/check_status.txt", (pass ? "pass" : "fail"));
       }
     } else { // error with unsupported HTTP code
       Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-      if (digitalRead(pin_relay) == LOW) {
+      const int n_retry = retry - 1;
+      checkEndpoint(n_retry);
+      if (retry == 0 && digitalRead(pin_relay) == LOW) {
         digitalWrite(pin_relay, HIGH);
       }
+      writeFile(SPIFFS, "/check_status.txt", "fail");
     }
 
     http.end();
   } else { // unable to contact server
     Serial.printf("[HTTP] Unable to connect\n");
-    if (digitalRead(pin_relay) == LOW) {
+    const int n_retry = retry - 1;
+    checkEndpoint(n_retry);
+    if (retry == 0 && digitalRead(pin_relay) == LOW) {
       digitalWrite(pin_relay, HIGH);
     }
+    writeFile(SPIFFS, "/check_status.txt", "fail");
   }
 }
 
@@ -430,6 +456,11 @@ void setup() {
     const char* check_interval = itoa(check_interval_default, cstr, 10);
     writeFile(SPIFFS, "/check_interval.txt", check_interval);
   }
+  if(readFile(SPIFFS, "/check_retry.txt") == "") {
+    char cstr[16];
+    const char* check_retry = itoa(check_retry_default, cstr, 10);
+    writeFile(SPIFFS, "/check_retry.txt", check_retry);
+  }
 
   for (uint8_t t = setup_wait; t > 0; t--) {
     Serial.printf("[SETUP] WAIT %d...\n", t);
@@ -486,6 +517,7 @@ void loop() {
     }
     check_interval_time = current_time;
 
-    checkEndpoint();
+    const unsigned long check_retry = atol(readFile(SPIFFS, "/check_retry.txt").c_str());
+    checkEndpoint(check_retry);
   }
 }
